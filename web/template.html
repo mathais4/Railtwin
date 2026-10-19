@@ -1,0 +1,202 @@
+<title>RailTwin Control</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a control-room console — controls in a left rail, the live picture (KPIs, network, train graph) in the main area; stacks to one column on phones. */
+:root {
+  --paper: #eef2f4; --panel: #fbfcfd; --ink: #14243a; --muted: #586a7e; --rule: #d3dbe2; --rule-strong: #aebbc7;
+  --accent: #b36a00; --accent-soft: #f6e7cf;
+  --ok: #1d7f53; --warn: #b57200; --bad: #c2362c; --ok-soft: #dcefe5; --bad-soft: #f7dfdc;
+  --k-intercity: #1f4fa3; --k-local: #6a7c91; --k-branch: #23806c; --k-coast: #7447ad; --k-freight: #8a6634;
+  --font-display: "Barlow Semi Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0e171e; --panel: #15212b; --ink: #e3eaf0; --muted: #91a3b4; --rule: #263643; --rule-strong: #3a4d5c;
+  --accent: #f0a63a; --accent-soft: #3a2c15;
+  --ok: #4fc08b; --warn: #f0a63a; --bad: #f06d61; --ok-soft: #173327; --bad-soft: #3b1d1a;
+  --k-intercity: #7aa5f2; --k-local: #a4b4c5; --k-branch: #5cc4aa; --k-coast: #b694ea; --k-freight: #cfa76d;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #0e171e; --panel: #15212b; --ink: #e3eaf0; --muted: #91a3b4; --rule: #263643; --rule-strong: #3a4d5c;
+  --accent: #f0a63a; --accent-soft: #3a2c15;
+  --ok: #4fc08b; --warn: #f0a63a; --bad: #f06d61; --ok-soft: #173327; --bad-soft: #3b1d1a;
+  --k-intercity: #7aa5f2; --k-local: #a4b4c5; --k-branch: #5cc4aa; --k-coast: #b694ea; --k-freight: #cfa76d;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 14px/1.5 var(--font-body); }
+.wrap { max-width: 1440px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px 40px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: 0.01em; }
+.mono, .num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.label { font: 600 11px/1.2 var(--font-body); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding-bottom: 14px; border-bottom: 2px solid var(--ink); margin-bottom: 18px; }
+.brand { display: flex; align-items: baseline; gap: 10px; }
+.brand h1 { font-size: 28px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.brand span { color: var(--muted); font-size: 13px; }
+.lamp { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); margin-right: 2px; transform: translateY(-2px); }
+.top .spacer { flex: 1; }
+.clock { font: 500 22px/1 var(--font-data); padding: 6px 10px; border: 1px solid var(--rule-strong); border-radius: 4px; background: var(--panel); }
+
+.layout { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.rail { display: flex; flex-direction: column; gap: 16px; }
+.main { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+.panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel > h2 { font-size: 17px; }
+.panel-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
+.panel-head h2 { font-size: 17px; }
+.hint { color: var(--muted); font-size: 12.5px; }
+
+select.big { width: 100%; padding: 8px 10px; border: 1px solid var(--rule-strong); border-radius: 4px; background: var(--paper); font-weight: 600; }
+.desc { margin: 0; color: var(--ink); max-width: 65ch; }
+.incidents { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.incidents li { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; padding: 8px 10px; border-left: 3px solid var(--bad); background: var(--bad-soft); border-radius: 0 4px 4px 0; font-size: 13px; }
+.incidents .kind { font: 600 11px/1.6 var(--font-body); text-transform: uppercase; letter-spacing: 0.06em; color: var(--bad); }
+.incidents .when { grid-column: 2; color: var(--muted); font-family: var(--font-data); font-size: 12px; }
+
+.presets { display: grid; grid-template-columns: 1fr; gap: 6px; }
+.preset { text-align: left; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 4px; background: var(--paper); cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 0 8px; }
+.preset strong { font-weight: 600; }
+.preset small { grid-column: 1 / -1; color: var(--muted); font-size: 12px; line-height: 1.35; }
+.preset .pm { font-family: var(--font-data); font-size: 12px; color: var(--muted); }
+.preset:hover { border-color: var(--rule-strong); }
+.preset[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); background: var(--panel); }
+.preset.best .pm { color: var(--ok); font-weight: 500; }
+.toggles { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; border-top: 1px dashed var(--rule); }
+.toggles label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.toggles input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); }
+.toggles select { padding: 4px 6px; border: 1px solid var(--rule-strong); border-radius: 4px; background: var(--paper); }
+.btn { padding: 9px 12px; border-radius: 4px; border: 1px solid var(--ink); background: var(--ink); color: var(--panel); font-weight: 600; cursor: pointer; }
+.btn:disabled { opacity: 0.6; cursor: progress; }
+.btn.ghost { background: transparent; color: var(--ink); }
+.opt-steps { margin: 0; padding-left: 20px; font-size: 13px; display: flex; flex-direction: column; gap: 3px; }
+.opt-steps li::marker { font-family: var(--font-data); color: var(--muted); }
+.opt-steps .c { font-family: var(--font-data); color: var(--muted); }
+
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+@media (max-width: 1100px) { .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kpi:last-child { grid-column: 1 / -1; } }
+.kpi { background: var(--panel); padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.kpi .v { font: 600 28px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.kpi .d { font: 500 12px/1.2 var(--font-data); color: var(--muted); }
+.kpi .d.good { color: var(--ok); } .kpi .d.bad { color: var(--bad); }
+.gridlock { padding: 10px 14px; border-radius: 4px; background: var(--bad-soft); color: var(--bad); border: 1px solid var(--bad); font-weight: 600; }
+
+.scrollx { overflow-x: auto; }
+svg text { fill: var(--ink); }
+.map svg { width: 100%; height: auto; display: block; }
+.timebar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.timebar input[type=range] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
+.legend i.dot { width: 9px; height: 9px; border-radius: 50%; }
+.legend i.dash { background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 7px); height: 2px; }
+
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th { font: 600 11px/1.2 var(--font-body); text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+td.n, th.n { text-align: right; font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+tr.current td { background: var(--accent-soft); }
+tr.clickable { cursor: pointer; } tr.clickable:hover td { background: var(--paper); }
+.pill { display: inline-block; padding: 1px 7px; border-radius: 999px; font: 600 11px/1.6 var(--font-body); letter-spacing: 0.03em; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); } .pill.bad { background: var(--bad-soft); color: var(--bad); } .pill.warn { background: var(--accent-soft); color: var(--warn); }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 1280px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.chain { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.chain li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 4px 0; border-bottom: 1px dotted var(--rule); }
+.chain .arrow { color: var(--muted); padding: 0 4px; }
+.bars { display: flex; flex-direction: column; gap: 10px; }
+.bar-row { display: grid; grid-template-columns: 110px minmax(0, 1fr) 54px; align-items: center; gap: 10px; font-size: 13px; }
+.bar-track { height: 12px; background: var(--paper); border-radius: 2px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--muted); border-radius: 2px; }
+.bar-fill.model { background: var(--accent); }
+.foot { color: var(--muted); font-size: 12px; max-width: 80ch; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1><span class="lamp" aria-hidden="true"></span> RailTwin</h1><span>Shannon Vale Railway · disruption simulator</span></div>
+    <div class="spacer"></div>
+    <div><div class="label">Network time</div><div class="clock" id="clock">07:30</div></div>
+  </header>
+
+  <div class="layout">
+    <aside class="rail">
+      <section class="panel" aria-labelledby="h-scn">
+        <h2 id="h-scn">Scenario</h2>
+        <select class="big" id="scenario" aria-label="Scenario"></select>
+        <p class="desc" id="scn-desc"></p>
+        <div class="label">Reported incidents</div>
+        <ul class="incidents" id="incidents"></ul>
+      </section>
+
+      <section class="panel" aria-labelledby="h-resp">
+        <div class="panel-head"><h2 id="h-resp">Response</h2><span class="hint">passenger-minutes lost</span></div>
+        <div class="presets" id="presets"></div>
+        <div class="toggles">
+          <label><input type="checkbox" id="opt-hold"> Hold connections for late feeders</label>
+          <label><input type="checkbox" id="opt-plat"> Allow platform changes</label>
+          <label>Dispatch <select id="opt-dispatch"><option value="fifo">First come, first served</option><option value="priority">Priority to faster trains</option><option value="schedule">Timetable order</option></select></label>
+        </div>
+        <button class="btn" id="optimise">Find best response</button>
+        <div id="opt-result" hidden></div>
+      </section>
+    </aside>
+
+    <main class="main">
+      <div id="gridlock" class="gridlock" hidden></div>
+      <div class="kpis" id="kpis"></div>
+
+      <section class="panel map" aria-labelledby="h-map">
+        <div class="panel-head"><h2 id="h-map">Network at <span id="map-time" class="mono">07:30</span></h2><span class="hint">Dots are trains, coloured by lateness. Dashed lines are single track.</span></div>
+        <div class="scrollx"><svg id="map" viewBox="0 0 900 380" style="min-width:620px" role="img" aria-label="Network map with train positions"></svg></div>
+        <div class="timebar">
+          <button class="btn ghost" id="play" aria-label="Play">▶ Play</button>
+          <input type="range" id="time" min="355" max="610" step="0.5" value="450" aria-label="Network time">
+        </div>
+        <div class="legend"><span><i class="dot" style="background:var(--ok)"></i>On time</span><span><i class="dot" style="background:var(--warn)"></i>3–10 min late</span><span><i class="dot" style="background:var(--bad)"></i>Over 10 min late</span><span><i style="background:var(--bad)"></i>Incident</span></div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-graph">
+        <div class="panel-head"><h2 id="h-graph">Train graph, Northgate–Stonebridge</h2><span class="hint">Time runs left to right. Thin dashed: timetable. Solid: simulated.</span></div>
+        <div class="scrollx"><svg id="graph" viewBox="0 0 1100 360" style="min-width:860px;width:100%;height:auto;display:block" role="img" aria-label="Time-distance diagram"></svg></div>
+        <div class="legend" id="graph-legend"></div>
+      </section>
+
+      <div class="two">
+        <section class="panel" aria-labelledby="h-cmp">
+          <div class="panel-head"><h2 id="h-cmp">Responses compared</h2><span class="hint">Click a row to load it</span></div>
+          <div class="scrollx"><table id="compare"></table></div>
+        </section>
+        <section class="panel" aria-labelledby="h-hit">
+          <h2 id="h-hit">Worst-hit trains</h2>
+          <div class="scrollx"><table id="worst"></table></div>
+        </section>
+      </div>
+
+      <div class="two">
+        <section class="panel" aria-labelledby="h-chain">
+          <div class="panel-head"><h2 id="h-chain">Knock-on links</h2><span class="hint">Minutes one train spent waiting for another</span></div>
+          <ul class="chain" id="chain"></ul>
+        </section>
+        <section class="panel" aria-labelledby="h-replay">
+          <div class="panel-head"><h2 id="h-replay">Prediction vs. observed day</h2><span class="hint">Mean absolute error, minutes</span></div>
+          <div class="bars" id="replay"></div>
+          <p class="foot" id="replay-note"></p>
+        </section>
+      </div>
+
+      <p class="foot">Shannon Vale is a fictional network. Its "observed" days are synthetic: generated with the incidents as they really unfolded, which differ from what was reported, plus random running and dwell overruns. The model only sees the reported incidents.</p>
+    </main>
+  </div>
+</div>
+<!--APP-->

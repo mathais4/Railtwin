@@ -1,0 +1,26 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: railtwin
+          POSTGRES_PASSWORD: railtwin
+          POSTGRES_DB: railtwin
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U railtwin" --health-interval 2s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://railtwin:railtwin@localhost:5432/railtwin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm install --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build:web
+      - run: npm run bench
